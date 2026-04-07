@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>IoT Monitoring</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  background: #0d1117;
+  color: white;
+  text-align: center;
+}
+.card {
+  background: #161b22;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🚀 IoT Monitoring</h2>
+
+<div class="card">
+<h3>Suhu</h3>
+<h1 id="temp"></h1>
+</div>
+
+<div class="card">
+<h3>Humidity</h3>
+<h1 id="hum"></h1>
+</div>
+
+<div class="card">
+<h3>Lux</h3>
+<h1 id="lux"></h1>
+</div>
+
+<div class="card">
+<h3>Status</h3>
+<h1 id="status"></h1>
+</div>
+
+<canvas id="chart"></canvas>
+
+<script>
+
+const sheetURL = "LINK_CSV_KAMU";
+
+let chart = new Chart(document.getElementById("chart"), {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [
+      { label: "Suhu", data: [] },
+      { label: "Humidity", data: [] },
+      { label: "Lux", data: [] }
+    ]
+  }
+});
+
+async function loadData(){
+  const res = await fetch(sheetURL);
+  const text = await res.text();
+  const rows = text.split("\n").slice(1);
+
+  let last = rows[rows.length-1].split(",");
+
+  document.getElementById("temp").innerText = last[1] + " C";
+  document.getElementById("hum").innerText = last[2] + " %";
+  document.getElementById("lux").innerText = last[3] + " lx";
+  document.getElementById("status").innerText = last[4];
+
+  let labels=[], s=[], h=[], l=[];
+
+  rows.forEach(r=>{
+    let c=r.split(",");
+    labels.push(c[0]);
+    s.push(c[1]);
+    h.push(c[2]);
+    l.push(c[3]);
+  });
+
+  chart.data.labels=labels;
+  chart.data.datasets[0].data=s;
+  chart.data.datasets[1].data=h;
+  chart.data.datasets[2].data=l;
+  chart.update();
+}
+
+setInterval(loadData,5000);
+
+</script>
+
+</body>
+</html>
