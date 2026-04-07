@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard IOT - Polban</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <h2 class="text-center mb-4">Real-Time Data Panel</h2>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card p-3 shadow-sm">
+                    <h5>Logging: <span id="stTxt">-</span></h5>
+                    <button class="btn btn-success mb-2" onclick="sendCtrl('START')">START</button>
+                    <button class="btn btn-danger" onclick="sendCtrl('STOP')">STOP</button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 shadow-sm">
+                    <h5>Interval (Detik)</h5>
+                    <input type="number" id="intVal" class="form-control mb-2" value="5">
+                    <button class="btn btn-primary" onclick="updateInt()">Set Interval</button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 shadow-sm text-center">
+                    <h5>Kondisi Sistem</h5>
+                    <h3 id="condTxt" class="badge bg-secondary fs-5">Checking...</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-3 shadow-sm mb-4">
+            <canvas id="chart" height="100"></canvas>
+        </div>
+
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-white table-striped">
+                <thead class="table-dark">
+                    <tr><th>No</th><th>Suhu (°C)</th><th>Hum (%)</th><th>Lux</th><th>Status</th></tr>
+                </thead>
+                <tbody id="tb"></tbody>
+            </table>
+        </div>
+    </div>
+
+<script>
+    const url = 'URL_WEB_APP_GOOGLE_KAMU'; // Tempel URL dari Langkah 1
+    let intervalTime = 5000;
+    let timer;
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [
+            { label: 'Suhu', data: [], borderColor: 'red' },
+            { label: 'Lux', data: [], borderColor: 'blue' }
+        ]}
+    });
+
+    async function getData() {
+        const res = await fetch(url);
+        const d = await res.json();
+        
+        document.getElementById('stTxt').innerText = d.status;
+        
+        // Kondisi Khusus (Poin 5)
+        const cTxt = document.getElementById('condTxt');
+        if (d.suhu > 30) { cTxt.innerText = "OVERHEAT"; cTxt.className = "badge bg-danger fs-5"; }
+        else { cTxt.innerText = "NORMAL"; cTxt.className = "badge bg-success fs-5"; }
+
+        // Update Tabel
+        document.getElementById('tb').insertAdjacentHTML('afterbegin', 
+            `<tr><td>${d.no}</td><td>${d.suhu}</td><td>${d.hum}</td><td>${d.lux}</td><td>${d.status}</td></tr>`);
+
+        // Update Chart
+        chart.data.labels.push(new Date().toLocaleTimeString());
+        chart.data.datasets[0].data.push(d.suhu);
+        chart.data.datasets[1].data.push(d.lux);
+        if(chart.data.labels.length > 15) chart.data.labels.shift(), chart.data.datasets[0].data.shift(), chart.data.datasets[1].data.shift();
+        chart.update();
+    }
+
+    function sendCtrl(s) {
+        fetch(url, { method: 'POST', mode: 'no-cors', body: JSON.stringify({action: 'updateStatus', status: s}) });
+        alert("Command: " + s);
+    }
+
+    function updateInt() {
+        intervalTime = document.getElementById('intVal').value * 1000;
+        clearInterval(timer);
+        timer = setInterval(getData, intervalTime);
+        alert("Interval Updated");
+    }
+
+    timer = setInterval(getData, intervalTime);
+    getData();
+</script>
+</body>
+</html>
