@@ -1,203 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<title>IoT Dashboard</title>
-
-<!-- 🔥 BOOTSTRAP DARK -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<!-- 🔥 CHART -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- 🔥 FIREBASE V8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-<style>
-body { background: #121212; color: white; }
-.card { border-radius: 15px; }
-</style>
-
+  <title>IoT Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
-<body class="p-3">
+<body class="bg-dark text-white">
+<div class="container mt-4">
 
-<div class="container">
+  <h2>Monitoring IoT</h2>
 
-<!-- 🔥 HEADER -->
-<h2 class="text-center mb-3">🚀 IoT Monitoring Dashboard</h2>
+  <button onclick="startLogging()" class="btn btn-success">Start</button>
+  <button onclick="stopLogging()" class="btn btn-danger">Stop</button>
 
-<div class="text-center mb-3">
-<span id="status" class="badge bg-success">LOGGING ON</span>
-</div>
+  <input type="number" id="delay" placeholder="Delay ms">
+  <button onclick="setDelay()" class="btn btn-warning">Set Delay</button>
 
-<!-- 🔥 CARD SENSOR -->
-<div class="row text-center">
-
-<div class="col-md-4">
-<div class="card bg-dark p-3">
-<h5>Suhu</h5>
-<h2 id="suhu">- °C</h2>
-</div>
-</div>
-
-<div class="col-md-4">
-<div class="card bg-dark p-3">
-<h5>Kelembapan</h5>
-<h2 id="hum">- %</h2>
-</div>
-</div>
-
-<div class="col-md-4">
-<div class="card bg-dark p-3">
-<h5>Cahaya (LDR)</h5>
-<h2 id="lux">- lux</h2>
-</div>
-</div>
-
-</div>
-
-<!-- 🔥 CONTROL -->
-<div class="text-center mt-4">
-
-<button class="btn btn-success" onclick="start()">START</button>
-<button class="btn btn-danger" onclick="stop()">STOP</button>
-
-<input type="number" id="interval" value="3000" class="form-control w-25 d-inline">
-<button class="btn btn-warning" onclick="setIntervalData()">SET</button>
-
-<button class="btn btn-secondary" onclick="resetTable()">RESET LOG</button>
-
-</div>
-
-<!-- 🔥 CHART -->
-<div class="mt-4">
-<canvas id="chartSuhu"></canvas>
-<canvas id="chartHum"></canvas>
-<canvas id="chartLux"></canvas>
-</div>
-
-<!-- 🔥 TABLE -->
-<table class="table table-dark table-striped mt-4" id="table">
-<thead>
-<tr>
-<th>Waktu</th>
-<th>Suhu</th>
-<th>Kelembapan</th>
-<th>Lux</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-
-<!-- 🔥 GOOGLE SHEETS EMBED -->
-<h4 class="mt-4">📊 Data Spreadsheet</h4>
-<iframe 
-src="https://docs.google.com/spreadsheets/d/e/2PACX-XXXX/pubhtml" 
-width="100%" height="300">
-</iframe>
+  <table class="table table-dark mt-3">
+    <thead>
+      <tr>
+        <th>Waktu</th>
+        <th>Suhu</th>
+        <th>Kelembapan</th>
+        <th>Lux</th>
+      </tr>
+    </thead>
+    <tbody id="data"></tbody>
+  </table>
 
 </div>
 
 <script>
-
-// 🔥 GANTI DENGAN LINK KAMU
-const url = "https://script.google.com/macros/s/AKfycbyhtB0PRELq-WcrKSFT_wFSHUROsQtrWaE3-j3bIr_sbkJDsvQmE18_Rdh_FROWdXDmEA/exec";
-
-let interval = 3000;
-let timer;
 let running = true;
+let delay = 5000;
 
-let suhuData=[], humData=[], luxData=[], labels=[];
-
-// 🔥 CHART
-const chartSuhu = new Chart(document.getElementById("chartSuhu"), {
-type: "line",
-data: { labels: labels, datasets: [{ label: "Suhu (°C)", data: suhuData }] }
-});
-
-const chartHum = new Chart(document.getElementById("chartHum"), {
-type: "line",
-data: { labels: labels, datasets: [{ label: "Kelembapan (%)", data: humData }] }
-});
-
-const chartLux = new Chart(document.getElementById("chartLux"), {
-type: "line",
-data: { labels: labels, datasets: [{ label: "Lux", data: luxData }] }
-});
-
-// 🔥 AMBIL DATA
-function ambilData(){
-if(!running) return;
-
-fetch(url)
-.then(res => res.json())
-.then(data => {
-
-let last = data[data.length - 1];
-let time = new Date().toLocaleTimeString();
-
-// update card
-document.getElementById("suhu").innerText = last[1] + " °C";
-document.getElementById("hum").innerText = last[2] + " %";
-document.getElementById("lux").innerText = last[3] + " lux";
-
-// update chart
-labels.push(time);
-suhuData.push(last[1]);
-humData.push(last[2]);
-luxData.push(last[3]);
-
-chartSuhu.update();
-chartHum.update();
-chartLux.update();
-
-// table
-let table = document.querySelector("#table tbody");
-let row = table.insertRow(0);
-
-row.insertCell(0).innerText = time;
-row.insertCell(1).innerText = last[1];
-row.insertCell(2).innerText = last[2];
-row.insertCell(3).innerText = last[3];
-
-});
+function startLogging() {
+  running = true;
 }
 
-// 🔥 CONTROL
-function start(){
-running = true;
-document.getElementById("status").className = "badge bg-success";
-document.getElementById("status").innerText = "LOGGING ON";
-clearInterval(timer);
-timer = setInterval(ambilData, interval);
+function stopLogging() {
+  running = false;
 }
 
-function stop(){
-running = false;
-document.getElementById("status").className = "badge bg-danger";
-document.getElementById("status").innerText = "LOGGING OFF";
-clearInterval(timer);
+function setDelay() {
+  delay = document.getElementById("delay").value;
 }
 
-function setIntervalData(){
-interval = document.getElementById("interval").value;
-if(running){
-clearInterval(timer);
-timer = setInterval(ambilData, interval);
-}
+async function fetchData() {
+  if (!running) return;
+
+  let res = await fetch("LINK_CSV_GOOGLE_SHEET");
+  let data = await res.text();
+
+  let rows = data.split("\n");
+  let table = document.getElementById("data");
+  table.innerHTML = "";
+
+  rows.slice(-10).forEach(row => {
+    let col = row.split(",");
+    table.innerHTML += `
+      <tr>
+        <td>${col[0]}</td>
+        <td>${col[1]}</td>
+        <td>${col[2]}</td>
+        <td>${col[3]}</td>
+      </tr>
+    `;
+  });
 }
 
-function resetTable(){
-document.querySelector("#table tbody").innerHTML = "";
-}
-
-// auto start
-timer = setInterval(ambilData, interval);
-
+setInterval(fetchData, delay);
 </script>
 
 </body>
