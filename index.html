@@ -3,10 +3,17 @@
 <head>
   <title>Monitoring IoT</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  
+
   <style>
-    body { font-family: Arial; text-align: center; background: #f5f5f5; }
-    h2 { margin-top: 20px; }
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: #f5f5f5;
+    }
+
+    h2 {
+      margin-top: 20px;
+    }
 
     .card {
       display: inline-block;
@@ -33,6 +40,7 @@
     button {
       padding: 10px;
       margin: 10px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -76,11 +84,13 @@
 let interval;
 
 function ambilData() {
-  fetch("https://script.google.com/macros/s/AKfycbxgIg20epuwEqKGnZrBq-WY1Sjj-YY9iO9OLZrzUl6QgnAAnBxqANninVAW25D1S1nq/exec")
+  fetch("https://script.google.com/macros/s/AKfycbyhtB0PRELq-WcrKSFT_wFSHUROsQtrWaE3-j3bIr_sbkJDsvQmE18_Rdh_FROWdXDmEA/exec")
   .then(res => res.json())
   .then(data => {
 
     let table = document.getElementById("tabel");
+
+    // reset tabel
     table.innerHTML = `
       <tr>
         <th>Waktu</th>
@@ -90,12 +100,13 @@ function ambilData() {
       </tr>
     `;
 
-    // ambil data terakhir
-    let last = data[data.length - 1];
+    if (data.length > 0) {
+      let last = data[data.length - 1];
 
-    document.getElementById("suhu").innerText = last[1];
-    document.getElementById("kelembapan").innerText = last[2];
-    document.getElementById("ldr").innerText = last[3];
+      document.getElementById("suhu").innerText = last[1];
+      document.getElementById("kelembapan").innerText = last[2];
+      document.getElementById("ldr").innerText = last[3];
+    }
 
     // isi tabel
     data.forEach(row => {
@@ -107,10 +118,14 @@ function ambilData() {
       table.innerHTML += tr;
     });
 
+  })
+  .catch(err => {
+    console.log("Error:", err);
   });
 }
 
 function start() {
+  ambilData(); // langsung ambil pertama
   interval = setInterval(ambilData, 3000);
 }
 
