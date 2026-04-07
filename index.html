@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>IoT Dashboard</title>
+  <title>IoT Monitoring</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body class="bg-dark text-white">
+
 <div class="container mt-4">
+  <h2>🌡️ IoT Monitoring</h2>
 
-  <h2>Monitoring IoT</h2>
-
+  <!-- CONTROL -->
   <button onclick="startLogging()" class="btn btn-success">Start</button>
   <button onclick="stopLogging()" class="btn btn-danger">Stop</button>
 
-  <input type="number" id="delay" placeholder="Delay ms">
+  <input type="number" id="delayInput" placeholder="Delay ms" class="mt-2">
   <button onclick="setDelay()" class="btn btn-warning">Set Delay</button>
 
+  <!-- TABLE -->
   <table class="table table-dark mt-3">
     <thead>
       <tr>
@@ -27,13 +29,18 @@
     </thead>
     <tbody id="data"></tbody>
   </table>
-
 </div>
 
 <script>
+
+// ==== CONFIG ====
 let running = true;
 let delay = 5000;
 
+// 👉 GANTI INI DENGAN LINK CSV GOOGLE SHEETS KAMU
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/XXXXX/pub?output=csv";
+
+// ==== CONTROL ====
 function startLogging() {
   running = true;
 }
@@ -43,33 +50,54 @@ function stopLogging() {
 }
 
 function setDelay() {
-  delay = document.getElementById("delay").value;
+  let input = document.getElementById("delayInput").value;
+  if (input > 0) {
+    delay = parseInt(input);
+    alert("Delay diubah ke " + delay + " ms");
+  }
 }
 
+// ==== FETCH DATA ====
 async function fetchData() {
   if (!running) return;
 
-  let res = await fetch("LINK_CSV_GOOGLE_SHEET");
-  let data = await res.text();
+  try {
+    let res = await fetch(sheetURL);
+    let data = await res.text();
 
-  let rows = data.split("\n");
-  let table = document.getElementById("data");
-  table.innerHTML = "";
+    let rows = data.trim().split("\n");
 
-  rows.slice(-10).forEach(row => {
-    let col = row.split(",");
-    table.innerHTML += `
-      <tr>
-        <td>${col[0]}</td>
-        <td>${col[1]}</td>
-        <td>${col[2]}</td>
-        <td>${col[3]}</td>
-      </tr>
-    `;
-  });
+    let table = document.getElementById("data");
+    table.innerHTML = "";
+
+    // skip header (baris pertama)
+    rows.slice(1).reverse().slice(0, 10).forEach(row => {
+
+      // 🔥 FIX UTAMA (ANTI ERROR CSV)
+      let col = row.split(/,|;/);
+
+      console.log(col); // debug
+
+      if (col.length >= 4) {
+        table.innerHTML += `
+          <tr>
+            <td>${col[0]}</td>
+            <td>${col[1]}</td>
+            <td>${col[2]}</td>
+            <td>${col[3]}</td>
+          </tr>
+        `;
+      }
+    });
+
+  } catch (err) {
+    console.error("Error fetch:", err);
+  }
 }
 
-setInterval(fetchData, delay);
+// ==== LOOP ====
+setInterval(fetchData, 5000);
+
 </script>
 
 </body>
